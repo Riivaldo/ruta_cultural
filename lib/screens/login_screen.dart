@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/almacenamiento.dart';
-import 'Registro.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,55 +11,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController usuarioController = TextEditingController();
   final TextEditingController contrasenaController = TextEditingController();
-  bool mostrarContrasena = false;
   bool cargando = false;
-
-  void iniciarSesion() async {
-    if (cargando) return;
-
-    String usuario = usuarioController.text.trim();
-    String contrasena = contrasenaController.text.trim();
-
-    if (usuario.isEmpty || contrasena.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Completa todos los campos")),
-      );
-      return;
-    }
-
-    setState(() => cargando = true);
-
-    try {
-      List usuariosGuardados = await UserStorage.cargarUsuarios();
-
-      if (!mounted) return;
-
-      bool coincide = usuariosGuardados.any(
-        (u) => u["user"] == usuario && u["pass"] == contrasena,
-      );
-
-      if (coincide) {
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Usuario o contraseña incorrectos")),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error al iniciar sesión: $e")));
-    } finally {
-      if (!mounted) return;
-      setState(() => cargando = false);
-    }
-  }
+  bool mostrarContrasena = false;
 
   @override
   void dispose() {
@@ -69,73 +21,103 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> intentarLogin() async {
+    if (cargando) return;
+    final String usuario = usuarioController.text.trim();
+    final String pass = contrasenaController.text.trim();
+
+    if (usuario.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa todos los campos')),
+      );
+      return;
+    }
+
+    setState(() => cargando = true);
+
+    try {
+      // Cargar usuarios registrados
+      final List usuarios = await UserStorage.cargarUsuarios();
+
+      // Buscar coincidencia de credenciales
+      final encontrado = usuarios.cast<dynamic>().firstWhere(
+        (u) {
+          try {
+            return u != null && u['user'] == usuario && u['pass'] == pass;
+          } catch (_) {
+            return false;
+          }
+        },
+        orElse: () => null,
+      );
+
+      if (encontrado == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuario o contraseña incorrectos')),
+        );
+        return;
+      }
+
+      // Guardar la sesión (clave: usuario_logueado)
+      await SessionStorage.guardarSesion(usuario);
+
+      // Ir al home (reemplazando)
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home', arguments: usuario);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al iniciar sesión: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => cargando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final tamanioPantalla = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: const Text(
-          'INICIAR SESIÓN',
-          style: TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-      ),
-
       extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('INICIAR SESIÓN', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
-
-        // fondo Degradado
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFB71C1C),
-              Color(0xFFD32F2F),
-              Color(0xFFE53935),
-            ],
+            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: tamanioPantalla.width > 600
-                    ? 520
-                    : tamanioPantalla.width,
-              ),
+              constraints: BoxConstraints(maxWidth: size.width > 600 ? 520 : size.width),
               child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 8,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 24,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      const CircleAvatar(
+                        radius: 36,
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.person, size: 44, color: Color(0xFF1976D2)),
+                      ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Ruta Cultural',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text('Bienvenido', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Inicia sesión para continuar',
-                        style: TextStyle(fontSize: 14, color: Colors.black54),
-                      ),
                       const SizedBox(height: 18),
 
                       // Usuario
@@ -150,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Contraseña con mostrar/ocultar
+                      // Contraseña
                       TextField(
                         controller: contrasenaController,
                         obscureText: !mostrarContrasena,
@@ -159,71 +141,48 @@ class _LoginScreenState extends State<LoginScreen> {
                           prefixIcon: const Icon(Icons.lock),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
-                            icon: Icon(
-                              mostrarContrasena
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                mostrarContrasena = !mostrarContrasena;
-                              });
-                            },
+                            icon: Icon(mostrarContrasena ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setState(() => mostrarContrasena = !mostrarContrasena),
                           ),
                         ),
                       ),
                       const SizedBox(height: 18),
 
-                      // Boton Entrar
+                      // Botón iniciar
                       SizedBox(
                         width: double.infinity,
                         height: 48,
                         child: ElevatedButton.icon(
                           icon: cargando
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                               : const Icon(Icons.login),
-                          label: Text(cargando ? 'Conectando...' : 'Entrar'),
-                          onPressed: iniciarSesion,
+                          label: Text(cargando ? 'Iniciando...' : 'Iniciar sesión'),
+                          onPressed: intentarLogin,
                           style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
 
-                      // Boton para crear cuenta
+                      // Enlace para registro
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton.icon(
-                            icon: const Icon(Icons.person_add),
-                            label: const Text('Crear cuenta'),
+                          const Text('¿No tienes cuenta?'),
+                          TextButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const RegisterScreen(),
-                                ),
-                              );
+                              Navigator.pushNamed(context, '/registro');
                             },
-                          ),
-                          const SizedBox(width: 6),
+                            child: const Text('Regístrate'),
+                          )
                         ],
                       ),
+
                       const SizedBox(height: 6),
+
+                      const Text('Demo local — No uses contraseñas reales', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.black54)),
                     ],
                   ),
                 ),
@@ -232,18 +191,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Bienvenido")),
-      body: const Center(child: Text("Has iniciado sesión correctamente 🎉")),
     );
   }
 }

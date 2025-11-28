@@ -48,3 +48,24 @@ class UserStorage {
     }
   }
 }
+class SessionStorage {
+  static const String _keySesion = 'usuario_logueado';
+
+  /// Guarda el usuario actual (solo el nombre)
+  static Future<void> guardarSesion(String usuario) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keySesion, usuario);
+  }
+
+  /// Obtiene el usuario logueado actualmente
+  static Future<String?> obtenerSesion() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keySesion);
+  }
+
+  /// Cerrar sesión → elimina el usuario logueado
+  static Future<void> cerrarSesion() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keySesion);
+  }
+}

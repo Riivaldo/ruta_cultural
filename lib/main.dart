@@ -3,10 +3,15 @@ import 'screens/login_screen.dart';
 import 'screens/registro.dart';
 import 'models/departamento.dart';
 import 'services/almacenamiento.dart';
+import 'screens/map_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(); // .env para cargar la API de ORS 
   runApp(const RutaCulturalApp());
 }
+
 
 class RutaCulturalApp extends StatelessWidget {
   const RutaCulturalApp({super.key});
@@ -22,8 +27,9 @@ class RutaCulturalApp extends StatelessWidget {
         '/': (context) => const RootChecker(),
         '/login': (context) => const LoginScreen(),
         '/registro': (context) =>
-            const RegisterScreen(), // tu clase se llama RegisterScreen
+            const RegisterScreen(),
         '/home': (context) => const PantallaPrincipal(),
+        '/map': (context) => const MapScreen(),
       },
     );
   }
@@ -124,7 +130,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     'noviembre',
     'diciembre',
   ];
-  final List<String> tipos = ['Todos', 'religioso', 'folclore', 'gastronómico'];
+  final List<String> tipos = ['Todos', 'religioso', 'folklore', 'gastronómico'];
 
   @override
   void initState() {
@@ -436,14 +442,13 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                                           final f = festividades[index];
                                           return ElevatedButton(
                                             onPressed: () {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    '${f.nombre} — acción futura: mostrar mapa en tiempo real',
-                                                  ),
-                                                ),
+                                              Navigator.of(context).pushNamed(
+                                                '/map',
+                                                arguments: {
+                                                  'festividad': f,
+                                                  'departamento':
+                                                      departamentoSeleccionado,
+                                                },
                                               );
                                             },
                                             child: Row(

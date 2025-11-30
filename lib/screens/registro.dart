@@ -61,6 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text("Error al registrar: $e")));
     } finally {
+      // ignore: control_flow_in_finally
       if (!mounted) return;
       setState(() => cargando = false);
     }
